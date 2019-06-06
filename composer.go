@@ -18,6 +18,7 @@ type StoreComposer struct {
 	Concater           ConcaterDataStore
 	UsesLengthDeferrer bool
 	LengthDeferrer     LengthDeferrerDataStore
+	Path 			   string
 }
 
 // NewStoreComposer creates a new and empty store composer.

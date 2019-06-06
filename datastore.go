@@ -7,24 +7,28 @@ import (
 type MetaData map[string]string
 
 type FileInfo struct {
-	ID string
+	ID string `json:"id"`
 	// Total file size in bytes specified in the NewUpload call
-	Size int64
+	Size int64 `json:"size"`
 	// Indicates whether the total file size is deferred until later
-	SizeIsDeferred bool
+	SizeIsDeferred bool `json:"size_is_deferred"`
 	// Offset in bytes (zero-based)
-	Offset   int64
-	MetaData MetaData
+	Offset   int64 `json:"offset"`
+	MetaData MetaData `json:"meta_data"`
 	// Indicates that this is a partial upload which will later be used to form
 	// a final upload by concatenation. Partial uploads should not be processed
 	// when they are finished since they are only incomplete chunks of files.
-	IsPartial bool
+	IsPartial bool `json:"is_partial"`
 	// Indicates that this is a final upload
-	IsFinal bool
+	IsFinal bool `json:"is_final"`
 	// If the upload is a final one (see IsFinal) this will be a non-empty
 	// ordered slice containing the ids of the uploads of which the final upload
 	// will consist after concatenation.
-	PartialUploads []string
+	PartialUploads []string `json:"partial_uploads"`
+	Location string `json:"location"`
+	FilePath string `json:"file_path"`
+	Name string `json:"name"`
+	CreatedAt string `json:"created_at"`
 }
 
 type DataStore interface {

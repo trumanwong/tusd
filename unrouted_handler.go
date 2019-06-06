@@ -2,6 +2,7 @@ package tusd
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"io"
 	"log"
@@ -285,7 +286,10 @@ func (handler *UnroutedHandler) PostFile(w http.ResponseWriter, r *http.Request)
 
 	// Parse metadata
 	meta := ParseMetadataHeader(r.Header.Get("Upload-Metadata"))
-
+	scheme := "http://"
+	if r.TLS != nil {
+		scheme = "https://"
+	}
 	info := FileInfo{
 		Size:           size,
 		SizeIsDeferred: sizeIsDeferred,
@@ -293,6 +297,10 @@ func (handler *UnroutedHandler) PostFile(w http.ResponseWriter, r *http.Request)
 		IsPartial:      isPartial,
 		IsFinal:        isFinal,
 		PartialUploads: partialUploads,
+		Location:		scheme + r.Host + "/files/",
+		FilePath:		handler.composer.Path + "/",
+		Name:			meta["name"],
+		CreatedAt:		time.Now().Format("2006-01-02 15:04:05"),
 	}
 
 	id, err := handler.composer.Core.NewUpload(info)
@@ -302,6 +310,8 @@ func (handler *UnroutedHandler) PostFile(w http.ResponseWriter, r *http.Request)
 	}
 
 	info.ID = id
+	info.Location = info.Location + id
+	info.FilePath = info.FilePath + id + ".mp4"
 
 	// Add the Location header directly after creating the new resource to even
 	// include it in cases of failure when an error is returned
@@ -349,7 +359,9 @@ func (handler *UnroutedHandler) PostFile(w http.ResponseWriter, r *http.Request)
 		handler.finishUploadIfComplete(info)
 	}
 
-	handler.sendResp(w, r, http.StatusCreated)
+	info_data, _ := json.Marshal(info)
+	handler.sendRespData(w, r, http.StatusCreated, info_data)
+	//handler.sendResp(w, r, http.StatusCreated)
 }
 
 // HeadFile returns the length and offset for the HEAD request
@@ -403,8 +415,10 @@ func (handler *UnroutedHandler) HeadFile(w http.ResponseWriter, r *http.Request)
 		w.Header().Set("Upload-Length", strconv.FormatInt(info.Size, 10))
 	}
 
-	w.Header().Set("Cache-Control", "no-store")
+	//w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Upload-Offset", strconv.FormatInt(info.Offset, 10))
+	info_data, _ := json.Marshal(info)
+	w.Header().Set("info_data", string(info_data))
 	handler.sendResp(w, r, http.StatusOK)
 }
 
@@ -620,6 +634,10 @@ func (handler *UnroutedHandler) GetFile(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Disposition", contentDisposition)
 
+	w.Header().Set("Accept-Ranges", "bytes");
+	w.Header().Set("Content-Transfer-Encoding", "binary");
+	w.Header().Set("Content-Disposition", "attachment; filename=" + info.Name)
+	w.Header().Set("Content-Type", "application/octet-stream; filename=" + info.Name)
 	// If no data has been uploaded yet, respond with an empty "204 No Content" status.
 	if info.Offset == 0 {
 		handler.sendResp(w, r, http.StatusNoContent)
@@ -791,6 +809,13 @@ func (handler *UnroutedHandler) sendResp(w http.ResponseWriter, r *http.Request,
 	w.WriteHeader(status)
 
 	handler.log("ResponseOutgoing", "status", strconv.Itoa(status), "method", r.Method, "path", r.URL.Path)
+}
+func (handler *UnroutedHandler) sendRespData(w http.ResponseWriter, r *http.Request, status int, data []byte) {
+	w.WriteHeader(status)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+
+	handler.log("ResponseOutgoingData", "status", strconv.Itoa(status), "method", r.Method, "path", r.URL.Path)
 }
 
 // Make an absolute URLs to the given upload id. If the base path is absolute
