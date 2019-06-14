@@ -174,19 +174,32 @@ func (handler *UnroutedHandler) Middleware(h http.Handler) http.Handler {
 
 		header := w.Header()
 
-		if origin := r.Header.Get("Origin"); origin != "" {
-			header.Set("Access-Control-Allow-Origin", origin)
+		//if origin := r.Header.Get("Origin"); origin != "" {
+		//	header.Set("Access-Control-Allow-Origin", origin)
+		//
+		//	if r.Method == "OPTIONS" {
+		//		// Preflight request
+		//		header.Add("Access-Control-Allow-Methods", "POST, GET, HEAD, PATCH, DELETE, OPTIONS")
+		//		header.Add("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Upload-Length, Upload-Offset, Tus-Resumable, Upload-Metadata, Upload-Defer-Length, Upload-Concat")
+		//		header.Set("Access-Control-Max-Age", "86400")
+		//
+		//	} else {
+		//		// Actual request
+		//		header.Add("Access-Control-Expose-Headers", "Upload-Offset, Location, Upload-Length, Tus-Version, Tus-Resumable, Tus-Max-Size, Tus-Extension, Upload-Metadata, Upload-Defer-Length, Upload-Concat")
+		//	}
+		//}
+		origin := r.Header.Get("Origin")
+		header.Set("Access-Control-Allow-Origin", origin)
 
-			if r.Method == "OPTIONS" {
-				// Preflight request
-				header.Add("Access-Control-Allow-Methods", "POST, GET, HEAD, PATCH, DELETE, OPTIONS")
-				header.Add("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Upload-Length, Upload-Offset, Tus-Resumable, Upload-Metadata, Upload-Defer-Length, Upload-Concat")
-				header.Set("Access-Control-Max-Age", "86400")
+		if r.Method == "OPTIONS" {
+			// Preflight request
+			header.Add("Access-Control-Allow-Methods", "POST, GET, HEAD, PATCH, DELETE, OPTIONS")
+			header.Add("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Upload-Length, Upload-Offset, Tus-Resumable, Upload-Metadata, Upload-Defer-Length, Upload-Concat")
+			header.Set("Access-Control-Max-Age", "86400")
 
-			} else {
-				// Actual request
-				header.Add("Access-Control-Expose-Headers", "Upload-Offset, Location, Upload-Length, Tus-Version, Tus-Resumable, Tus-Max-Size, Tus-Extension, Upload-Metadata, Upload-Defer-Length, Upload-Concat")
-			}
+		} else {
+			// Actual request
+			header.Add("Access-Control-Expose-Headers", "Upload-Offset, Location, Upload-Length, Tus-Version, Tus-Resumable, Tus-Max-Size, Tus-Extension, Upload-Metadata, Upload-Defer-Length, Upload-Concat")
 		}
 
 		// Set current version used by the server
@@ -286,10 +299,6 @@ func (handler *UnroutedHandler) PostFile(w http.ResponseWriter, r *http.Request)
 
 	// Parse metadata
 	meta := ParseMetadataHeader(r.Header.Get("Upload-Metadata"))
-	scheme := "http://"
-	if r.TLS != nil {
-		scheme = "https://"
-	}
 	info := FileInfo{
 		Size:           size,
 		SizeIsDeferred: sizeIsDeferred,
@@ -297,7 +306,7 @@ func (handler *UnroutedHandler) PostFile(w http.ResponseWriter, r *http.Request)
 		IsPartial:      isPartial,
 		IsFinal:        isFinal,
 		PartialUploads: partialUploads,
-		Location:		scheme + r.Host + "/files/",
+		Location:		"/files/",
 		FilePath:		handler.composer.Path + "/",
 		Name:			meta["name"],
 		CreatedAt:		time.Now().Format("2006-01-02 15:04:05"),
