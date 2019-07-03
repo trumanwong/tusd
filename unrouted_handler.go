@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -296,6 +297,17 @@ func (handler *UnroutedHandler) PostFile(w http.ResponseWriter, r *http.Request)
 		handler.sendError(w, r, ErrMaxSizeExceeded)
 		return
 	}
+
+	t := time.Now()
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	upload_path := dir + "/uploads/" + t.Format("2006-01-02")
+	_, err = os.Stat(upload_path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			os.Mkdir(upload_path, os.ModePerm)
+		}
+	}
+	handler.composer.Path = upload_path
 
 	// Parse metadata
 	meta := ParseMetadataHeader(r.Header.Get("Upload-Metadata"))
@@ -836,6 +848,8 @@ func (handler *UnroutedHandler) absFileURL(r *http.Request, id string) string {
 
 	// Read origin and protocol from request
 	host, proto := getHostAndProtocol(r, handler.config.RespectForwardedHeaders)
+
+	proto = "https"
 
 	url := proto + "://" + host + handler.basePath + id
 
